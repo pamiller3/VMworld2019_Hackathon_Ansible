@@ -1,0 +1,34 @@
+#Tested during the 2019 vmworld hackathon
+#This is just a sample that will create 
+#I take no credit in this :) all credit goes to lots of great folks in the community and my hackathon team!
+#This assumes there is a variables file
+
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: include vars
+      include_vars:
+        dir: hackathon_vars
+
+    - name: Make a new Datacenter 
+      local_action:
+        module: vmware_datacenter
+        datacenter_name: "{{ datacenter }}"
+        hostname: "{{ vcenter_ip}}"
+        username: "{{ vcenter_username}}"
+        password: "{{ vcenter_password}}"
+        validate_certs: False
+        state: present
+
+    - name: Make a new Cluster 
+      local_action:
+        module: vmware_cluster
+        hostname: "{{ vcenter_ip}}"
+        username: "{{ vcenter_username}}"
+        password: "{{ vcenter_password}}"
+        validate_certs: False
+        state: present
+        datacenter_name: "{{ datacenter }}"
+        cluster_name: "{{ cluster }}"
+        enable_ha: yes
+        enable_drs: yes
