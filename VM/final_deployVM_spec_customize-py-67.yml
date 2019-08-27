@@ -1,0 +1,51 @@
+---
+- hosts: localhost
+  gather_facts: no
+
+  tasks:
+  - name: Including Secret Environment Items
+    include_vars:
+      file: secrets67.yml
+      name: secret
+
+  - name: Clone a virtual machine from Windows template
+    vmware_guest:
+      hostname: "{{secret.vcenter}}"
+      username: "{{secret.username}}"
+      password: "{{secret.password}}"
+      validate_certs: no
+      template: Win2016Template
+      customization_spec: "CustomizationSpec001"
+      annotation: Deployed with Ansible by asm
+      datacenter: Datacenter
+      cluster: NUC-AF
+      folder: /Ansible
+      name: testvm01
+      hardware:
+        memory_mb: 5120
+        num_cpus: 1
+        num_cpu_cores_per_socket: 1
+        scsi: paravirtual
+      networks:
+        - name: dvs_test
+      wait_for_customization: yes
+    delegate_to: localhost
+
+  - name: Customize the disks and portgroup on that same VM
+    vmware_guest:
+      hostname: "{{secret.vcenter}}"
+      username: "{{secret.username}}"
+      password: "{{secret.password}}"
+      validate_certs: no
+      datacenter: Datacenter
+      cluster: NUC-AF
+      folder: /Ansible
+      name: testvm01
+# Right now the following disk part only works to expand existing disks, not to create!
+      disk:
+      - size_gb: 50
+        datastore: vsanDatastoreNUCs
+# I haven't found a good play to add a 2nd disk to an existing VM, I think it's a bug or related to me using vSAN
+#      - size_gb: 56
+#        datastore: vsanDatastoreNUCs
+    delegate_to: localhost
