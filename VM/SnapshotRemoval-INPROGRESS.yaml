@@ -1,0 +1,50 @@
+- name: Remove old templates from VMs
+  hosts: localhost
+  vars:
+    hostname: 192.168.1.202
+    username: administrator@vsphere.local
+    password: VMware1!
+    datacenter: VMUG
+    maxmins: 5
+
+  tasks:
+    - name: Gather all registered virtual machines
+      vmware_vm_facts:
+        hostname: '{{ hostname }}'
+        username: '{{ username }}'
+        password: '{{ password }}'
+        vm_type: vm
+        validate_certs: no
+      delegate_to: localhost
+      register: vm_facts
+
+#    - debug:
+#      var: vm_facts
+
+    - name: Find snapshots for each VM
+      vmware_guest_snapshot_facts:
+        hostname: "{{ hostname }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        datacenter: "{{ datacenter }}"
+        uuid: "{{ item.uuid }}"
+        validate_certs: no
+      delegate_to: localhost
+      register: vm_snapshots_facts
+      with_items: "{{ vm_facts }}"
+
+    - name: Remove old snapshots
+      vmware_guest_snapshot:
+        hostname: "{{ hostname }}"
+        username: "{{ username }}"
+        password: "{{ password }}"
+        datacenter: "{{ datacenter }}"
+        validate_certs: no
+        state: absent
+        snapshot_name: "{{ item.1.name }}"
+      delegate_to: localhost
+      with_subelements: 
+        - "{{ vm_snapshot_facts.results }}"
+        - snapshots
+      when:
+        - (ansible_date_time.date - (item.creation_time.split("T")[0] | to_datetime)).mins) > maxmins
